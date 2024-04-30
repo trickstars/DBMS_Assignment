@@ -10,53 +10,59 @@
 //   poolPromise,
 // };
 
-const mongoose = require('mongoose')
-const path = require("path")
-require("dotenv").config({ path: path.resolve(__dirname, ".env") })
+// const mongoose = require('mongoose')
+// const path = require("path")
+// require("dotenv").config({ path: path.resolve(__dirname, ".env") })
 
-async function connect() { //connect to database
-    try {
-        await mongoose.connect(process.env.MONGODB_URI); 
-        console.log('Connect to database successfully')
-    }
-    catch (error) {
-        console.log('Connect to database failed:', error)
-    }
-}
+// async function connect() { //connect to database
+//     try {
+//         await mongoose.connect(process.env.MONGODB_URI); 
+//         console.log('Connect to database successfully')
+//     }
+//     catch (error) {
+//         console.log('Connect to database failed:', error)
+//     }
+// }
 
-module.exports = {connect} 
+// module.exports = {connect} 
 
 // var sqlite3 = require('sqlite3').verbose()
-// var md5 = require('md5')
+// // var md5 = require('md5')
 
-// const DBSOURCE = "db.sqlite"
+// const DBSOURCE = "bkhostel.db"
 
-// let db = new sqlite3.Database(DBSOURCE, (err) => {
+// let db = new sqlite3.Database(DBSOURCE, sqlite3.OPEN_READWRITE, (err) => {
 //     if (err) {
 //       // Cannot open database
-//       console.error(err.message)
+//       console.error('Error in connecting to database:', err.message)
 //       throw err
 //     }else{
-//         console.log('Connected to the SQLite database.')
-//         db.run(`CREATE TABLE user (
-//             id INTEGER PRIMARY KEY AUTOINCREMENT,
-//             name text, 
-//             email text UNIQUE, 
-//             password text, 
-//             CONSTRAINT email_unique UNIQUE (email)
-//             )`,
-//         (err) => {
-//             if (err) {
-//                 // Table already created
-//             }else{
-//                 // Table just created, creating some rows
-//                 var insert = 'INSERT INTO user (name, email, password) VALUES (?,?,?)'
-//                 db.run(insert, ["admin","admin@example.com",md5("admin123456")])
-//                 db.run(insert, ["user","user@example.com",md5("user123456")])
-//             }
-//         });  
+//         console.log('Connected to the SQLite database successfully.')
 //     }
 // });
 
+const Database = require('better-sqlite3')
+const DBSOURCE = "bkhostel.db"
+const db = new Database(DBSOURCE, {fileMustExist: true, verbose: console.log})
+console.log('Connect to database successfully.')
 
-// module.exports = db
+//for sql statements that get multiple records
+all =  (sql, params) => {
+  return db.prepare(sql).all(params);
+}
+
+//for sql statements that do not get records (insert, update, delete)
+run = (sql, params) => {
+  return db.prepare(sql).run(params)
+}
+
+//for sql statements that get one record
+get = (sql, params) => {
+  return db.prepare(sql).get(params);
+}
+
+module.exports = {
+  all,
+  run,
+  get
+}

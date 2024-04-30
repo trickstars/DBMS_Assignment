@@ -72,13 +72,13 @@ router.post(
   authCtrl.forgotPassword
 );
 
-router.get(
-  "/test-auth",
-  // #swagger.tags = ['Auth']
-  auth,
-  (req, res) => {
-    res.json({ message: "You are authenticated" });
-  }
-);
+// router.get(
+//   "/test-auth",
+//   // #swagger.tags = ['Auth']
+//   auth,
+//   (req, res) => {
+//     res.json({ message: "You are authenticated" });
+//   }
+// );
 
 module.exports = router;

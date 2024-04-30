@@ -6,7 +6,7 @@ require("dotenv").config({ path: path.resolve(__dirname, ".env") });
 
 const { corsMiddleware } = require("./middlewares/cors");
 
-require("./database/dbinfo").connect(); //Connect to database (MongoDB)
+//  require("./database/dbinfo").connect(); //Connect to database (MongoDB)
 
 app.use(express.json({ limit: "150mb" }));
 app.use(express.urlencoded({ limit: "150mb", extended: true }));

@@ -1,40 +1,67 @@
 "use strict";
 const jwt = require("jsonwebtoken");
-const User = require("../models/user.model");
+// const User = require("../models/user.model");
 const nodemailer = require("nodemailer");
+const db = require("../database/dbinfo");
+
+// var sqlite3 = require('sqlite3').verbose()
+// // var md5 = require('md5')
+
+// const DBSOURCE = "C:/Users/Khoe/OneDrive/Documents/A7_HK232/DBMS/BKHostel/backend/controllers/bkhostell.db"
+
+// let db = new sqlite3.Database(DBSOURCE, sqlite3.OPEN_READWRITE, (err) => {
+//     if (err) {
+//       // Cannot open database
+//       console.error('Error in connecting to database:', err.message)
+//       throw err
+//     }else{
+//         console.log('Connected to the SQLite database successfully.')
+//     }
+// });
 
 const signIn = async (req, res) => {
   const { username, password } = req.body;
-
   try {
-    const user = await User.findOne({ username, password }).select("id");
-    if (!user) {
-      return res
-        .status(401)
-        .json({ message: "Thông tin đăng nhập không chính xác" });
-    }
+    var sql = "select username, full_name, role from users where username = ? and password = ?"
+    var params = [username, password]
+    // db.get(sql, params, (err, user) => {
+    //     if (err) {
+    //       res.status(400).json({"error":err.message});
+    //       return;
+    //     }
+      
+        const user = db.get(sql, params)
 
-    await User.updateOne({ _id: user.id }, { last_active: new Date() });
+        if (!user) {
+          return res
+          .status(401)
+          .json({ message: "Thông tin đăng nhập không chính xác" });
+        }
+        // else {
+        //   return res.json(user)
+        // }
 
-    const userInfo = await User.findById(user.id).select(
-      "_id role full_name tokenVersion"
-    );
-    const token = jwt.sign(
-      { id: userInfo.id.toString(), tokenVersion: userInfo.tokenVersion },
-      process.env.SECRET_KEY
-    );
+        const token = jwt.sign(
+          { id: user.username.toString(), role: user.role },
+          process.env.SECRET_KEY
+        );
+    
+        res.json({
+          message: "Logged in successfully",
+          result: {
+            "user-info": {
+              user: user.username,
+              full_name: user.full_name,
+              role: user.role,
+            },
+          },
+          token,
+        });
+        
+      // });
+    
 
-    res.json({
-      message: "Logged in successfully",
-      result: {
-        "user-info": {
-          id: userInfo.id,
-          full_name: userInfo.full_name,
-          role: userInfo.role,
-        },
-      },
-      token,
-    });
+    // db.close()   
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Lỗi máy chủ" });
@@ -49,39 +76,95 @@ const signUp = async (req, res) => {
   }
 
   try {
-    const existingUsername = await User.findOne({ username: username });
-    if (existingUsername) {
-      return res.status(409).json({ message: "Username đã tồn tại" });
-    }
+    // db.serialize(function(){
+      //check trung ten dang nhap
 
-    const existingPhone = await User.findOne({ phone: phone });
-    if (existingPhone) {
-      return res.status(409).json({ message: "Phone đã tồn tại" });
-    }
+      // var hasUsed = false;
 
-    const existingEmail = await User.findOne({ email: email });
-    if (existingEmail) {
-      return res.status(409).json({ message: "Email đã tồn tại" });
-    }
-    const newUser = new User({
-      username,
-      phone,
-      email,
-      password,
-    });
+      var sql = "select userID from users where username=?"
+      var params = [username]
+      // db.get(sql, params, (err, user) => {
+      //     if (err) {
+      //       res.status(400).json({"error":err.message});
+      //       return;
+      //     }
+          var user = db.get(sql, params)
 
-    const savedUser = await newUser.save();
-    const newUserId = savedUser._id.toString();
-    const token = jwt.sign(
-      { id: newUserId, tokenVersion: newUser.tokenVersion },
-      process.env.SECRET_KEY
-    );
+          if(user) {
+            return res.status(400).json({
+              message: "Tên đăng nhập đã được sử dụng",
+            });
+            // hasUsed = true;
+          }
+        // });
 
-    res.json({
-      message: "Signup successful",
-      id: newUserId.toString(),
-      token,
-    });
+        // console.log(hasUsed);
+        // if(hasUsed) return;
+
+        //check trung email
+        var sql = "select userID from users where email=?"
+        var params = [email]
+        // db.get(sql, params, (err, user) => {
+        //     if (err) {
+        //       res.status(400).json({"error":err.message});
+        //       return;
+        //     }
+
+            var user = db.get(sql, params)
+
+            if(user) {
+              return res.status(400).json({
+                message: "Email đã được sử dụng",
+              });
+              // hasUsed = true;
+            }
+          // });
+
+        // if(hasUsed) return;
+
+        //check trung SDT
+        var sql = "select userID from users where phone=?"
+        var params = [phone]
+        // db.get(sql, params, (err, user) => {
+        //     if (err) {
+        //       res.status(400).json({"error":err.message});
+        //       return;
+        //     }
+            var user = db.get(sql, params)
+
+            if(user) {
+              return res.status(400).json({
+                message: "Số điện thoại đã được sử dụng",
+              });
+              // hasUsed = true;
+            }
+          // });
+
+      // if(hasUsed) return;
+
+      var sql = "insert into users (username, phone, email, password) values (?, ?, ?, ?)"
+      var params = [username, phone, email, password]
+      // db.run(sql, params, (err, result) => {
+      //     if (err) {
+      //       res.status(400).json({"error":err.message});
+      //       return;
+      //     }
+
+          var result = db.run(sql, params)
+          if(result.changes)
+          {
+            const token = jwt.sign(
+              { name: username, role: 'USER' },
+              process.env.SECRET_KEY
+            );
+        
+            res.json({
+              message: "Sign up successfully",
+              token,
+            });
+          }
+        // });
+    // })
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Lỗi máy chủ" });
@@ -91,53 +174,78 @@ const signUp = async (req, res) => {
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email: email });
-    if (!user) {
-      const error = new Error("Không tìm thấy tài khoản trong hệ thống");
-      error.statusCode = 401;
-      throw error;
-    }
 
-    const newPassword = Math.random().toString(36).slice(2, 8);
-    user.password = newPassword;
-    user.tokenVersion++;
+    // db.serialize(function(){
+      var sql = "select userID from users where email = ?"
+      var params = [email]
+      // db.get(sql, params, async (err, user) => {
+      //     if (err) {
+      //       res.status(400).json({"error":err.message});
+      //       return;
+      //     }
 
-    await user.save();
+          var user = db.get(sql, params)
 
-    const transporter = nodemailer.createTransport({
-      service: "Gmail",
-      auth: {
-        user: "bkhostelhelper@gmail.com",
-        pass: process.env.GMAIL_PASSWORD,
-      },
-    });
-    await transporter.verify();
-    const content = `
-  <div style="padding: 10px; background-color: #003375">
-    <div style="padding: 10px; background-color: white; border-radius: 5px;">
-      <h2 style="color: #0085ff; text-align: center; margin-bottom: 20px;">Trung tâm hỗ trợ BKHostel</h2>
-      <p style="color: black; font-size: 16px; line-height: 1.5;">
-        Chúng tôi đã hỗ trợ bạn lấy lại mật khẩu. Dưới đây là mật khẩu mới của bạn:
-      </p>
-      <h3 style="color: #0085ff; font-size: 24px; text-align: center; margin-top: 20px;">${newPassword}</h3>
-      <p style="color: black; font-size: 16px; line-height: 1.5;">
-        Xin cảm ơn bạn đã sử dụng dịch vụ của chúng tôi. Nếu bạn có bất kỳ câu hỏi hoặc cần hỗ trợ thêm, vui lòng liên hệ với chúng tôi.
-      </p>
-      <p style="color: black; font-size: 16px; line-height: 1.5; text-align: center;">
-        Trân trọng,<br>
-        Đội ngũ BKHostel
-      </p>
-    </div>
-  </div>
-`;
-    const mailOptions = {
-      from: "bkhostelhelper@gmail.com",
-      to: email,
-      subject: "Thay đổi mật khẩu",
-      html: content,
-    };
-    await transporter.sendMail(mailOptions);
-    res.json({ message: "Đặt lại mật khẩu thành công", address: email });
+          if(!user) {
+            return res.json({
+              message: "Email này chưa được đăng ký",
+            });
+          }
+
+        const newPassword = Math.random().toString(36).slice(2, 8);
+        
+        const transporter = nodemailer.createTransport({
+          service: "Gmail",
+          auth: {
+            user: "bkhostelhelpsystem@gmail.com",
+            // pass: process.env.GMAIL_PASSWORD,
+            pass: 'bkhostel18'
+          },
+        });
+        await transporter.verify();
+        const content = `
+      <div style="padding: 10px; background-color: #003375">
+        <div style="padding: 10px; background-color: white; border-radius: 5px;">
+          <h2 style="color: #0085ff; text-align: center; margin-bottom: 20px;">Trung tâm hỗ trợ BKHostel</h2>
+          <p style="color: black; font-size: 16px; line-height: 1.5;">
+            Chúng tôi đã hỗ trợ bạn lấy lại mật khẩu. Dưới đây là mật khẩu mới của bạn:
+          </p>
+          <h3 style="color: #0085ff; font-size: 24px; text-align: center; margin-top: 20px;">${newPassword}</h3>
+          <p style="color: black; font-size: 16px; line-height: 1.5;">
+            Xin cảm ơn bạn đã sử dụng dịch vụ của chúng tôi. Nếu bạn có bất kỳ câu hỏi hoặc cần hỗ trợ thêm, vui lòng liên hệ với chúng tôi.
+          </p>
+          <p style="color: black; font-size: 16px; line-height: 1.5; text-align: center;">
+            Trân trọng,<br>
+            Đội ngũ BKHostel
+          </p>
+        </div>
+      </div>
+    `;
+        const mailOptions = {
+          from: "bkhostelhelpsystem@gmail.com",
+          to: email,
+          subject: "Thay đổi mật khẩu",
+          html: content,
+        };
+        await transporter.sendMail(mailOptions);
+        
+        sql = `UPDATE users set 
+        password = ? 
+        WHERE id = ?`
+        params = [newPassword, user.userID]
+        // db.run(sql, params, function (err, result) {
+        //       if (err){
+        //           res.status(400).json({"error": res.message})
+        //           return;
+        //       }
+              var result = db.run(sql, params)
+              if(result.changes) {
+                res.json({ message: "Đặt lại mật khẩu thành công", address: email });
+              }
+      // });
+
+    // });
+    // })
   } catch (error) {
     console.error(error);
     const statusCode = error.statusCode || 500;

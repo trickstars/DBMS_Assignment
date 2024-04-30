@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "@vercel/analytics": "^0.1.5",
+    "better-sqlite3": "^9.6.0",
     "body-parser": "^1.20.1",
     "cloudinary": "^1.41.0",
     "cors": "^2.8.5",
@@ -27,6 +28,7 @@
     "mysql2": "^2.3.3",
     "node-cache": "^5.1.2",
     "nodemailer": "^6.9.4",
+    "sqlite3": "^5.1.7",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^4.6.3"
   },
